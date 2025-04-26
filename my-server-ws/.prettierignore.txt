@@ -1,0 +1,31 @@
+# Don't format dependencies
+node_modules
+
+# Don't format build output
+build
+dist
+out
+coverage
+
+# Ignore lock files and logs
+*.log
+*.lock
+
+# Ignore environment and system files
+.env
+.env.* 
+.DS_Store
+
+# Ignore version control folders
+.git
+.gitignore
+
+# Ignore public assets (optional, especially if it's large or contains non-code stuff)
+public
+
+# Optional: ignore compiled TypeScript if applicable
+*.tsbuildinfo
+
+# Ignore custom generated folders (adjust based on your project)
+tmp
+cache
