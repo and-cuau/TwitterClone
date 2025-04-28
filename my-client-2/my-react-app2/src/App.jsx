@@ -446,10 +446,10 @@ function App() {
           <button onClick={addElement}>Post</button>
 
           <div>
-            <button    style={{ display: 'none' }} onClick={() => fetchFollowers(uname.name)}>
+            <button onClick={() => fetchFollowers(uname.name)}>
               Fetch Followers
             </button>
-            <button  style={{ display: 'none' }} onClick={() => fetchUserPosts(uname.name)}>
+            <button onClick={() => fetchUserPosts(uname.name)}>
               Fetch My Posts
             </button>
             {/* <button onClick= {fetchUsers}>Fetch Users</button> */}

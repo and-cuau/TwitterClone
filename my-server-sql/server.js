@@ -34,6 +34,7 @@ db.run(`CREATE TABLE IF NOT EXISTS reactions (
 db.run(`CREATE TABLE IF NOT EXISTS followers (
   user_id INTEGER,
   username TEXT,
+  follower_id INTEGER,
   follower TEXT
 )`);
 
@@ -99,7 +100,6 @@ app.get('/posts/user', (req, res) => {  //  get all user's posts
 
 app.post('/posts', (req, res) => {   // post new post
   console.log('POST /posts was called');
-
   const { username, text } = req.body;
 
   db.run('INSERT INTO posts (username, text) VALUES (?, ?)', [username, text], function(err){
@@ -155,10 +155,10 @@ app.post('/reactions', (req, res) => {   // update post with reaction
 app.post('/followers', (req, res) => { // post new follower
   // user and follower  
   // res.send('POST /followers was called');
-  const { username, follower } = req.body;
+  const { username, follower , follower_id} = req.body;
   console.log(username + " -- " + follower);
 
-  db.run('INSERT INTO followers (username, follower) VALUES (?, ?)', [username, follower], function(err){
+  db.run('INSERT INTO followers (username, follower, follower_id) VALUES (?, ?, ?)', [username, follower, follower_id], function(err){
     if (err){
       console.error('Error inserting data:', err);
       return;
@@ -183,7 +183,7 @@ app.post('/followers', (req, res) => { // post new follower
 //       res.send(String(row.count));
 //     }
 //   });
-// });
+// });red
 
 app.get('/followers', (req, res) => {   // get all user's followers
   console.log("GET followers was executed");
@@ -198,6 +198,15 @@ app.get('/followers', (req, res) => {   // get all user's followers
       res.send(rows);
     }
   });
+
+  db.all('SELECT COUNT(*) AS count FROM followers WHERE username = ?', [username], (err, row) => {
+    if (err){
+      console.error('Error running COUNT query:', err);
+    } else {
+      // res.send(count);
+    }
+  });
+
 });
 
 

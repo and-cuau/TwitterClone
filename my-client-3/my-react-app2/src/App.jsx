@@ -9,13 +9,6 @@ function App() {
   const [input2Text, setInput2Text] = useState("");
   const [userText, setUserText] = useState("");
   const [uname, setUname] = useState({ name: "", user_id: "" });
-  //const [dmuname, setDmuname] = useState({ name: "test", user_id: ""});
-
-  const [dmuname, setDmuname] = useState("test");
-
-
-  // let globaltoid = "0";
-  const globaltoidRef = useRef(null);
 
   const [uname2, setUname2] = useState();
 
@@ -151,14 +144,14 @@ function App() {
     }
   };
 
-  const sendFollower = async (username, follower_id) => {
+  const sendFollower = async (message) => {
     try {
       const res = await fetch("http://localhost:3000/followers", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username: username, follower: uname.name, follower_id: uname.user_id}),
+        body: JSON.stringify({ username: message, follower: uname.name }),
       });
 
       if (!res.ok) throw new Error("Server error");
@@ -241,6 +234,16 @@ function App() {
     }
   };
 
+  const addMessage = () => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      const msg = input2Text;
+      socketRef.current.send(input2Text);
+    }
+   
+
+  }
+
+
   function editPost() {}
 
   const addReaction = async (data) => {
@@ -280,13 +283,11 @@ function App() {
     const raw = localStorage.getItem("myData");
     console.log("upon refresh: " + localStorage.getItem("myData"));
 
-    let globalid = "0";
     try {
       if (raw) {
         const parsed = JSON.parse(raw); //json string to javascript value
         console.log("parsed is :" + parsed.message);
         // old code used same object not new to set state
-        globalid = parsed.user_id;
         setUname((prevUser) => ({
           ...prevUser,
           name: parsed.message,
@@ -310,15 +311,16 @@ function App() {
     socketRef.current = new WebSocket("ws://localhost:8080");
 
     socketRef.current.onopen = () => {
-      console.log("WebSocket connected: !!" + globalid);
-      socketRef.current.send(JSON.stringify(globalid));
+      console.log("WebSocket connected");
     };
 
     socketRef.current.onmessage = (event) => {
+      setElements((prev) => [...prev, event.data]);
 
-      const parsed = JSON.parse(event.data);
+      console.log("HEY!");
+      console.log(elements);
 
-      setElements((prev) => [...prev, parsed.msg]);
+     // setElements([...elements, event.data]);
     };
 
     socketRef.current.onclose = () => {
@@ -330,19 +332,11 @@ function App() {
     };
   }, []);
 
-  const addMessage = () => {
-    console.log("Globaltoid upon sending dm: " +  globaltoidRef.current);
-    
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      const messageObject = {
-        to: globaltoidRef.current,
-        from: uname.user_id,
-        msg: input2Text,
-      };
-      // socketRef.current.send(json.stringify(input2Text));
-      socketRef.current.send(JSON.stringify(messageObject));
-    }
-  };
+  // const sendMessage = () => {
+  //   if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+  //     socketRef.current.send("Hello from client!");
+  //   }
+  // };
 
   return (
     <>
@@ -357,27 +351,28 @@ function App() {
               </div>
             </div>
             <div className="dms">
-              <div className="dmsprofile">
-                <span margins> {dmuname} </span>
+
+              <div className="dmsprofile"> 
+                <span margins> Username </span>
               </div>
+
 
               <div className="messages">
                 {elements.map((el, idx) => (
                   <div className="profile" key={idx}>
                     <span>{el}</span>
                     <div className="reactions">
+  
                       <p className="reaction"></p>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="dmsinputarea">
-                <input
-                  value={input2Text}
-                  onChange={(e) => setInput2Text(e.target.value)}
-                ></input>
-                <button onClick={() => addMessage(input2Text)}>send</button>
+              <div className = "dmsinputarea">
+                <input value={input2Text}
+            onChange={(e) => setInput2Text(e.target.value)}></input>
+                <button onClick = {()=> addMessage(input2Text)}>send</button>
               </div>
             </div>
           </div>
@@ -398,7 +393,7 @@ function App() {
                   </div>
                 </div>
               ))}
-            </div>
+            </div> 
 
             <div className="feed">
               {feed.map((el, idx) => (
@@ -446,10 +441,10 @@ function App() {
           <button onClick={addElement}>Post</button>
 
           <div>
-            <button    style={{ display: 'none' }} onClick={() => fetchFollowers(uname.name)}>
+            <button onClick={() => fetchFollowers(uname.name)}>
               Fetch Followers
             </button>
-            <button  style={{ display: 'none' }} onClick={() => fetchUserPosts(uname.name)}>
+            <button onClick={() => fetchUserPosts(uname.name)}>
               Fetch My Posts
             </button>
             {/* <button onClick= {fetchUsers}>Fetch Users</button> */}
@@ -473,7 +468,7 @@ function App() {
               <div className="follower" key={idx}>
                 <p>{el.follower_id}</p>
                 <p>{el.follower}</p>
-                <button onClick = {()=>{setDmuname(el.follower);  globaltoidRef.current = el.follower_id;}}>message</button>
+                <button>message</button>
               </div>
             ))}
           </div>
@@ -484,8 +479,8 @@ function App() {
                 <span>{el.id}</span>
                 <span>{el.username}</span>
                 <div className="reactions">
-                  <button onClick={() => sendFollower(el.username, el.id)}>
-                    follow
+                  <button onClick={() => sendFollower(el.username)}>
+                    connect
                   </button>
                   <p className="reaction"></p>
                 </div>
