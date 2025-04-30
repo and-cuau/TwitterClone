@@ -69,7 +69,7 @@ button:focus-visible {
 
 .page2 {
   display: flex;
-  border: 10px solid skyblue;
+  border: 10px solid darkred;
 }
 
 .side {
@@ -141,6 +141,7 @@ textarea {
 .messages {
   border: 1px solid white;
   height: 160px;
+  overflow-y: auto;
 }
 
 .dmsinputarea{

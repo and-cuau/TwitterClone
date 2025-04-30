@@ -128,14 +128,15 @@ function App() {
       const data = await res.json(); // parse the response
       console.log("Added User: ", data); // do something with it
 
-      // uname.user_id = data.id;
-      // setUname(uname);
+      
+      localStorage.setItem("token", JSON.stringify(data.token));
 
       setUname((prevUser) => ({
         ...prevUser,
-        name: message,
+        name: message, 
         user_id: data.id,
       }));
+
 
       const data2 = {
         message: message,

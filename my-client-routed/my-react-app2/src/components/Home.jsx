@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import "./App.css";
+import "../App.css";
+import { Link } from "react-router-dom";
 
-function App() {
+export default function Home() {
   const [elements, setElements] = useState([]);
   const [inputText, setInputText] = useState("");
   const [input2Text, setInput2Text] = useState("");
   const [userText, setUserText] = useState("");
-  const [uname, setUname] = useState({ name: "", user_id: "" });
+  const [uname, setUname] = useState({ name: "test", user_id: "" });
+
+  const [numfollowers, setNumfollowers] = useState("-1");
+
+  const [pword, setPword] = useState("");
   //const [dmuname, setDmuname] = useState({ name: "test", user_id: ""});
 
   const [dmuname, setDmuname] = useState("test");
-
 
   // let globaltoid = "0";
   const globaltoidRef = useRef(null);
@@ -30,11 +32,16 @@ function App() {
   const [userPosts, setUserPosts] = useState([]);
 
   const sendPost = async (message) => {
+
+    const token = localStorage.getItem("token");
+    console.log("token on sending post"+token);
+
     try {
       const res = await fetch("http://localhost:3000/posts", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`, // <<< Added Auth line
         },
         body: JSON.stringify({ username: uname.name, text: message }),
       });
@@ -47,6 +54,20 @@ function App() {
       return false;
     }
   };
+
+  const logOutUser = async () => {
+    localStorage.removeItem("token");
+
+    const data2 = {
+      message: "Logged-out",
+      user_id: "0",
+    };
+
+    localStorage.setItem("myData", JSON.stringify(data2));
+  
+    
+  };
+
 
   const fetchPosts = async (message) => {
     try {
@@ -83,6 +104,7 @@ function App() {
     const parsed = JSON.parse(raw);
     console.log("TEST:" + parsed.message);
 
+    const token = localStorage.getItem("token");
     try {
       const res = await fetch(
         "http://localhost:3000/posts/user?username=" + parsed.message,
@@ -113,14 +135,12 @@ function App() {
     }
   };
 
-  const sendUser = async (message) => {
+  const checkUser = async (username, password) => {
+    console.log("username: "+username);
+    console.log("password: "+password);
     try {
-      const res = await fetch("http://localhost:3000/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username: message }),
+      const res = await fetch(`http://localhost:3000/users/exists?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+        method: "GET",
       });
 
       if (!res.ok) throw new Error("Server error");
@@ -128,18 +148,20 @@ function App() {
       const data = await res.json(); // parse the response
       console.log("Added User: ", data); // do something with it
 
-      // uname.user_id = data.id;
-      // setUname(uname);
+
+      localStorage.setItem("token", data.token); // JSON.stringify was causing the token alteration problem. its not necessary and it adds extra quotes
+      
+      console.log("token right after storing: "+ localStorage.getItem("token"));
 
       setUname((prevUser) => ({
         ...prevUser,
-        name: message,
-        user_id: data.id,
+        name: data.userInfo.username,
+        user_id: data.userInfo.id,
       }));
 
       const data2 = {
-        message: message,
-        user_id: data.id,
+        message: data.userInfo.username,
+        user_id: data.userInfo.id,
       };
 
       localStorage.setItem("myData", JSON.stringify(data2));
@@ -152,13 +174,19 @@ function App() {
   };
 
   const sendFollower = async (username, follower_id) => {
+    const token = localStorage.getItem("token");
     try {
       const res = await fetch("http://localhost:3000/followers", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
-        body: JSON.stringify({ username: username, follower: uname.name, follower_id: uname.user_id}),
+        body: JSON.stringify({
+          username: username,
+          follower: uname.name,
+          follower_id: uname.user_id,
+        }),
       });
 
       if (!res.ok) throw new Error("Server error");
@@ -204,6 +232,7 @@ function App() {
 
     console.log("this is what sent to /followers: " + parsed.message);
 
+    const token = localStorage.getItem("token");
     try {
       const res = await fetch(
         "http://localhost:3000/followers?username=" + parsed.message,
@@ -211,6 +240,7 @@ function App() {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
           },
         },
       );
@@ -220,8 +250,10 @@ function App() {
       const data = await res.json(); // parse the response
       console.log("Fetched users:", data); // do something with it
 
+      setNumfollowers(()=>data.count);
+
       setFollowers(
-        data.map((el) => ({
+        data.followers.map((el) => ({
           follower_id: el.follower_id,
           follower: el.follower,
         })),
@@ -245,11 +277,14 @@ function App() {
 
   const addReaction = async (data) => {
     console.log("SHOULDBE17: " + data.post_id);
+
+    const token = localStorage.getItem("token");
     try {
       const res = await fetch("http://localhost:3000/reactions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify({
           message_id: data.post_id,
@@ -280,10 +315,14 @@ function App() {
     const raw = localStorage.getItem("myData");
     console.log("upon refresh: " + localStorage.getItem("myData"));
 
+    console.log("token upon refresh: " + localStorage.getItem("token"));
+
     let globalid = "0";
+
+    let parsed;
     try {
       if (raw) {
-        const parsed = JSON.parse(raw); //json string to javascript value
+        parsed = JSON.parse(raw); //json string to javascript value
         console.log("parsed is :" + parsed.message);
         // old code used same object not new to set state
         globalid = parsed.user_id;
@@ -301,10 +340,12 @@ function App() {
       console.error("Failed to parse localStorage data:", e);
     }
 
+    console.log("parsed.message upon refresh: " + parsed.message);
+
     fetchUsers();
-    fetchUserPosts(uname.name); // unused var uname
+    fetchUserPosts(parsed.message); // unused var uname
     fetchPosts();
-    fetchFollowers(uname.name);
+    fetchFollowers(parsed.message);
 
     // Connect to the WebSocket server
     socketRef.current = new WebSocket("ws://localhost:8080");
@@ -315,7 +356,6 @@ function App() {
     };
 
     socketRef.current.onmessage = (event) => {
-
       const parsed = JSON.parse(event.data);
 
       setElements((prev) => [...prev, parsed.msg]);
@@ -331,8 +371,8 @@ function App() {
   }, []);
 
   const addMessage = () => {
-    console.log("Globaltoid upon sending dm: " +  globaltoidRef.current);
-    
+    console.log("Globaltoid upon sending dm: " + globaltoidRef.current);
+
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       const messageObject = {
         to: globaltoidRef.current,
@@ -352,9 +392,10 @@ function App() {
             <div className="myprofile">
               <h2>{uname.user_id + " " + uname.name}</h2>
               <div className="followers">
-                <span>X</span>
+                <span>{numfollowers}</span>&nbsp; 
                 <span>Followers</span>
               </div>
+              <button onClick = {()=>logOutUser()}>Log out</button>
             </div>
             <div className="dms">
               <div className="dmsprofile">
@@ -395,6 +436,7 @@ function App() {
                     <button className="reaction" onClick={() => addReaction()}>
                       👎
                     </button>
+                    <button>🗑️</button>
                   </div>
                 </div>
               ))}
@@ -431,6 +473,7 @@ function App() {
                     >
                       👎
                     </button>
+                    <button>🗑️</button>
                   </div>
                 </div>
               ))}
@@ -446,10 +489,16 @@ function App() {
           <button onClick={addElement}>Post</button>
 
           <div>
-            <button    style={{ display: 'none' }} onClick={() => fetchFollowers(uname.name)}>
+            <button
+              style={{ display: "none" }}
+              onClick={() => fetchFollowers(uname.name)}
+            >
               Fetch Followers
             </button>
-            <button  style={{ display: 'none' }} onClick={() => fetchUserPosts(uname.name)}>
+            <button
+              style={{ display: "none" }}
+              onClick={() => fetchUserPosts(uname.name)}
+            >
               Fetch My Posts
             </button>
             {/* <button onClick= {fetchUsers}>Fetch Users</button> */}
@@ -458,22 +507,50 @@ function App() {
 
         <div className="side">
           <div className="login">
-            <span>Log in</span>
-            <input
-              className="username"
-              value={uname2}
-              placeholder="username"
-              onChange={(e) => setUname2(e.target.value)}
-            ></input>
-            <button onClick={() => sendUser(uname2)}>Enter</button>
+            <div className="loginout">
+            
+              <span>Log in</span>
+       
+            </div>
+            <div>
+              <input
+                className="username"
+                value={uname2}
+                placeholder="username"
+                onChange={(e) => setUname2(e.target.value)}
+              ></input>
+
+              <input
+                className="username"
+                value={pword}
+                placeholder="password"
+                onChange={(e) => setPword(e.target.value)}
+              ></input>
+            </div>
+
+            <div>
+              <div>
+                <button onClick={() => checkUser(uname2, pword)}>Enter</button>
+              </div>
+              <div>
+                <Link to="/signup">Sign up</Link>
+              </div>
+            </div>
           </div>
 
           <div className="followerlist">
             {followers.map((el, idx) => (
               <div className="follower" key={idx}>
-                <p>{el.follower_id}</p>
-                <p>{el.follower}</p>
-                <button onClick = {()=>{setDmuname(el.follower);  globaltoidRef.current = el.follower_id;}}>message</button>
+                <span>{el.follower_id}</span>
+                <span>{el.follower}</span>
+                <button
+                  onClick={() => {
+                    setDmuname(el.follower);
+                    globaltoidRef.current = el.follower_id;
+                  }}
+                >
+                  message
+                </button>
               </div>
             ))}
           </div>
@@ -497,5 +574,3 @@ function App() {
     </>
   );
 }
-
-export default App;

@@ -1,0 +1,25 @@
+#root {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem;
+    text-align: center;
+  }
+  
+.doublepanel{
+    display: flex;
+    width: 500px;
+}
+
+.panel{
+    flex-grow: 1;
+    display: block;
+}
+
+input{
+    display:block;
+    margin: 0 auto;
+}
+
+button{
+    margin: 16px 0;
+}
