@@ -11,29 +11,17 @@ export default function Signup() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username: newusername, password: newpassword, role: "user"}),
+        body: JSON.stringify({
+          username: newusername,
+          password: newpassword,
+          role: "user",
+        }),
       });
 
       if (!res.ok) throw new Error("Server error");
 
       const data = await res.json(); // parse the response
       console.log("Added User: ", data); // do something with it
-
-      // uname.user_id = data.id;
-      // setUname(uname);
-
-      setUname((prevUser) => ({
-        ...prevUser,
-        name: message,
-        user_id: data.id,
-      }));
-
-      const data2 = {
-        message: message,
-        user_id: data.id,
-      };
-
-      localStorage.setItem("myData", JSON.stringify(data2));
 
       return true;
     } catch (err) {

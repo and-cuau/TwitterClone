@@ -5,20 +5,13 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import Home from "./components/Home";
 import Signup from "./components/Signup";
 import Admin from "./components/Admin";
+import Navbar from "./components/Navbar";
 
 function App() {
-
-
   return (
     <>
       <Router>
-        <nav className="p-4 flex gap-4 bg-gray-100">
-          <Link to="/">Home </Link>
-          <Link to="/admin">Admin </Link>
-          
-
-        </nav>
-
+        <Navbar />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/signup" element={<Signup />} />

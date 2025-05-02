@@ -1,25 +1,25 @@
 #root {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 2rem;
-    text-align: center;
-  }
-  
-.doublepanel{
-    display: flex;
-    width: 500px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
 }
 
-.panel{
-    flex-grow: 1;
-    display: block;
+.doublepanel {
+  display: flex;
+  width: 500px;
 }
 
-input{
-    display:block;
-    margin: 0 auto;
+.panel {
+  flex-grow: 1;
+  display: block;
 }
 
-button{
-    margin: 16px 0;
+input {
+  display: block;
+  margin: 0 auto;
+}
+
+button {
+  margin: 16px 0;
 }
