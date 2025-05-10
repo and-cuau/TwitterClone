@@ -3,7 +3,8 @@ const app = express();
 const PORT = 3000;
 const bodyParser = require('body-parser');
 
-
+const bcrypt = require('bcrypt');
+const isMatch = await bcrypt.compare('myPassword', hash);
 
 const jwt = require('jsonwebtoken');
 
@@ -32,6 +33,13 @@ function authenticateToken(req, res, next) {
         req.user = user;
         next();
     });
+}
+
+function authorizeAdmin(req, res, next){
+  if (req.user.role !== 'admin') {
+    return res.sendStatus(403);
+  }
+  next();
 }
 
 const sqlite3 = require('sqlite3').verbose();
@@ -82,19 +90,17 @@ app.get('/', (req, res) => {
   res.send('Hello, World!');
 });
 
-app.post('/users', (req, res) =>{ // post new user  (sign up)
+app.post('/users',  async (req, res) =>{ // post new user  (sign up)
   console.log('POST /users was called');
   const username = req.body.username;
   const password = req.body.password;
+  const hash = await bcrypt.hash(password, 10);
   const role = req.body.role;
 
   console.log('Test: ' + username);
 
-  db.run('INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)', [username, password, role], function(err){ 
-    if (err){
-      console.error('Error inserting data:', err);
-      return;
-    }
+  db.run('INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)', [username, hash, role], function(err){ 
+    
     if (this.changes === 0) {
       db.get('SELECT id FROM users WHERE username = ?', [username], (err, row) => {
         if (err) {
@@ -110,6 +116,7 @@ app.post('/users', (req, res) =>{ // post new user  (sign up)
     }
   });
 });
+
 
 app.get('/users/exists', (req, res) =>{ // check for user
   console.log('GET /users/exists was called');
@@ -133,58 +140,113 @@ app.get('/users/exists', (req, res) =>{ // check for user
         };  // add row.role ?
 
         const data = {userInfo: safeUserInfo, token: token}
+        console.log("Successful log-in")
         console.log(data);
         return res.send(data);
-
       } else{
+
+        console.log("Username exists but password is incorrect")
         return res.status(404).json({ username: "Invalid username or password (debug: username exists but password is incorrect)", id: "0"});
       }
     }
     else{
+      console.log("Username does not exist")
       return res.status(404).json({ username: "Invalid username or password (debug: username does not exist)", id:"0" });
     }
   });
 });
 
 
-app.get('/users/admin/exists', (req, res) =>{ // check for user
-  console.log('GET /users/exists was called');
-  const username = req.query.username;
-  const password = req.query.password;
+
+app.post('/users/login', async (req, res) =>{ // check for user
+  console.log('POST /users/login was called');
+  const username = req.body.username;
+  const password = req.body.password;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
+
   console.log('Test: ' + username);
 
-db.get('SELECT * FROM users WHERE username = ? AND role = "admin"', [username], function(err, row){ 
-  if (err) {
-    console.error(err.message);
-    return res.status(500).json({ error: 'Database error' });
-  } else if (row) {
-    if (row.password == password){
-      const userobj = {id: row.id, role: "user"};
+  try {
+
+  const row = await db.get('SELECT * FROM users WHERE username = ?', [username]);
+
+  if (!row) return res.status(404).json({ error: 'User not found' });
+
+  const isMatch = await bcrypt.compare(password, row.password); // This works fine here
+
+  if (isMatch) {
+
+    const userobj = {id: row.id, role: "user"};
+    const token = generateToken(userobj);
+
+    const safeUserInfo = {
+      id: row.id,
+      username: row.username,
+      role: row.role,
+    };  // add row.role ?
+    
+    const data = {userInfo: safeUserInfo, token: token}
+
+    console.log("Successful log-in")
+    console.log(data);
+    return res.send(data);
+
+  } else {
+    res.status(401).json({ error: 'Invalid credentials' });
+  }
+} catch (err){
+  res.status(500).json({ error: 'Server error' });
+}
+});
+
+app.post('/users/admin/login', async (req, res) =>{ // check for user (admin)
+  console.log('POST /users/admin/login was called');
+  const username = req.body.username;
+  const password = req.body.password;
+  console.log('Test: ' + username);
+
+  try {
+    // Assume you fetched the user and their hashed password from DB
+    const row = await db.get('SELECT * FROM users WHERE username = ? AND role = "admin"', [username]);
+
+    if (!row) return res.status(404).json({ error: 'Admin not found' });
+
+    const isMatch = await bcrypt.compare(password, row.password); // This works fine here
+
+    if (isMatch) {
+      const userobj = {id: row.id, role: "admin"};
       const token = generateToken(userobj);
 
       const safeUserInfo = {
         id: row.id,
         username: row.username,
-      };  // add row.role ?
+        role: row.role
+      };  // added row.role. front end doesnt use it for the moment
 
       const data = {userInfo: safeUserInfo, token: token}
-      console.log(data);
+
       return res.send(data);
-
-    } else{
-      return res.status(404).json({ username: "Invalid username or password (debug: username exists but password is incorrect)", id: "0"});
+    } else {
+      res.status(401).json({ error: 'Invalid credentials' });
     }
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
   }
-  else{
-    return res.status(404).json({ username: "Invalid username or password (debug: username does not exist)", id:"0" });
-  }
-});
+
+
 });
 
-app.get('/posts', (req, res) => {  // get all commmunity posts
+
+
+app.get('/posts', (req, res) => {  // get all commmunity posts except for user's
   // console.log('GET /posts was called');
 
-  db.all('SELECT * FROM posts', [], (err, rows) => {
+  const user_id = req.query.user_id;
+
+  db.all('SELECT * FROM posts WHERE user_id != ?', [user_id], (err, rows) => {
     if (err) {
       throw err;
     }
@@ -208,11 +270,11 @@ app.get('/posts/user', (req, res) => {  //  get all user's posts
 
 app.post('/posts', authenticateToken, (req, res) => {   // post new post
   console.log('POST /posts was called');
-  const { username, text } = req.body;
+  const { user_id, username, text } = req.body;
 
   // console.log(req.user);
 
-  db.run('INSERT INTO posts (username, text) VALUES (?, ?)', [username, text], function(err){
+  db.run('INSERT INTO posts (user_id, username, text) VALUES (?, ?, ?)', [user_id, username, text], function(err){
     if (err){
       console.error('Error inserting data:', err);
       return;
@@ -309,9 +371,9 @@ app.get('/followers', authenticateToken, (req, res) => {   // get all user's fol
 
 });
 
-
 app.get('/users', (req, res) => { // gets all users 
-  db.all("SELECT * FROM users", [], (err, rows) => {
+  const id = req.query.id;
+  db.all('SELECT * FROM users WHERE role = "user" AND id !=  ?', [id], (err, rows) => {
     if (err) {
       console.error(err.message);
       return;
@@ -321,7 +383,21 @@ app.get('/users', (req, res) => { // gets all users
   });
   console.log("hey this line was executed!");
 });
-  
+
+app.delete('/posts', authenticateToken, authorizeAdmin, (req, res) => { // deletes post
+  console.log("DELETE posts was executed");
+  const post_id = req.query.post_id;
+   db.run("DELETE FROM posts where id = ?", [post_id], (err, rows) => {
+     if (err) {
+       console.error(err.message);
+       return;
+     }
+     console.log(rows);
+     res.send(rows);
+   });
+  console.log("hey this line was executed!");
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import "../App.css";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import Login from './Login';
+import Login from "./Login";
 
 export default function Home() {
   const [selected, setSelected] = useState("");
@@ -133,53 +133,6 @@ export default function Home() {
           message: el.text,
         })),
       );
-
-      return true;
-    } catch (err) {
-      console.error("Failed to send message:", err);
-      return false;
-    }
-  };
-
-  const checkUser = async (username, password) => {
-    console.log("username: " + username);
-    console.log("password: " + password);
-
-    try {
-      const res = await fetch(
-        `http://localhost:3000/users/exists?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
-        {
-          method: "GET",
-        },
-      );
-
-      if (!res.ok) throw new Error("Server error");
-
-      const data = await res.json(); // parse the response
-      console.log("Added User: ", data); // do something with it
-
-      setIsLoggedIn(true);
-      setIsLoggedInGlobal(true);
-      localStorage.setItem("isLoggedIn", JSON.stringify(true));
-
-      localStorage.setItem("token", data.token); // JSON.stringify was causing the token alteration problem. its not necessary and it adds extra quotes
-
-      console.log(
-        "token right after storing: " + localStorage.getItem("token"),
-      );
-
-      setUname((prevUser) => ({
-        ...prevUser,
-        name: data.userInfo.username,
-        user_id: data.userInfo.id,
-      }));
-
-      const data2 = {
-        message: data.userInfo.username,
-        user_id: data.userInfo.id,
-      };
-
-      localStorage.setItem("myData", JSON.stringify(data2));
 
       return true;
     } catch (err) {
@@ -351,13 +304,14 @@ export default function Home() {
 
   useEffect(() => {
     //  On mount
-
-    const isLoggedIn = JSON.parse(localStorage.getItem("isLoggedIn"));
+    const isLoggedInGlobal = JSON.parse(localStorage.getItem("isLoggedIn"));
     setIsLoggedIn(isLoggedIn);
-    setIsLoggedInGlobal(isLoggedIn);
+    setIsLoggedInGlobal(isLoggedInGlobal);
 
     const isAdmin = JSON.parse(localStorage.getItem("isAdmin"));
     setIsAdmin(isAdmin);
+
+    if (isLoggedInGlobal){
 
     const raw = localStorage.getItem("myData");
     console.log("upon refresh: " + localStorage.getItem("myData"));
@@ -391,6 +345,8 @@ export default function Home() {
     fetchUserPosts(parsed.message); // unused var uname
     fetchPosts(parsed.user_id);
     fetchFollowers(parsed.message);
+
+    }
 
     // Connect to the WebSocket server
     socketRef.current = new WebSocket("ws://localhost:8080");
@@ -433,45 +389,26 @@ export default function Home() {
     <>
       <div className="page2">
         <div className="page">
-          <div className="profileanddms">
-            <div className="myprofile">
+
+        <div className="myprofile">
+              <div>
               <h2>{uname.user_id + " " + uname.name}</h2>
               <div className="followers">
                 <span>{numfollowers}</span>&nbsp;
                 <span>Followers</span>
               </div>
               <button onClick={() => logOutUser()}>Log out</button>
-            </div>
-            <div className="dms">
-              <div className="dmsprofile">
-                <span margins> {dmuname} </span>
-              </div>
 
-              <div className="messages">
-                {elements.map((el, idx) => (
-                  <div className="profile" key={idx}>
-                    <span>{el}</span>
-                    <div className="reactions">
-                      <p className="reaction"></p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="dmsinputarea">
-                <input
-                  value={input2Text}
-                  onChange={(e) => setInput2Text(e.target.value)}
-                ></input>
-                <button onClick={() => addMessage(input2Text)}>send</button>
               </div>
             </div>
-          </div>
+  
 
           <div className="feeds">
             <div className="feed">
+            <h2 className="h2">Your Posts</h2>
+           
               {userPosts.map((el, idx) => (
-                <div className="profile" key={idx}>
+                <div className="post" key={idx}>
                   <p className="user">{el.username}</p>
                   <p className="posttext">{el.message}</p>
                   <div className="reactions">
@@ -481,15 +418,35 @@ export default function Home() {
                     <button className="reaction" onClick={() => addReaction()}>
                       👎
                     </button>
-                    <button>🗑️</button>
+                    <div>
+                      <select
+                        onChange={(e) => {
+                          const action = e.target.value;
+                          setSelected(action);
+
+                          if (action === "delete") {
+                            deletePost(el.post_id);
+                          } else if (action === "edit") {
+                            // handle edit here
+                          }
+                        }}
+                      >
+                        <option value="">•••</option>
+                        <option value="edit">Edit</option>
+                        <option value="delete">Delete</option>
+                      </select>
+
+                      {/* {selected && <p>You selected: {selected}</p>} */}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
 
             <div className="feed">
+            <h2 className="h2">Feed</h2>
               {feed.map((el, idx) => (
-                <div className="profile" key={idx}>
+                <div className="post" key={idx}>
                   <p className="user">
                     p#{el.post_id} {el.username}
                   </p>
@@ -571,56 +528,17 @@ export default function Home() {
         </div>
 
         <div className="side">
-          <div className="login">
-            {isLoggedInGlobal ? (
-              isAdmin ? (
-                <div>
-                  <h2>You're logged in as an administrator.</h2>
-                </div>
-              ) : (
-                <div>
-                  {" "}
-                  <h2>Welcome back!</h2>
-                </div>
-              )
-            ) : (
-              <div>
-                <span>Log in</span>
-                <div>
-                  <input
-                    className="username"
-                    value={uname2}
-                    placeholder="username"
-                    onChange={(e) => setUname2(e.target.value)}
-                  ></input>
-
-                  <input
-                    className="username"
-                    value={pword}
-                    placeholder="password"
-                    onChange={(e) => setPword(e.target.value)}
-                  ></input>
-                </div>
-
-                <div>
-                  <div>
-                    <button onClick={() => checkUser(uname2, pword)}>
-                      Enter
-                    </button>
-                  </div>
-                  <div>
-                    <Link to="/signup">Sign up</Link>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <Login setUname = {setUname} uname2 = {uname2} setUname2 = {setUname2} pword =  {pword} setPword = {setPword} />
-
+          <Login
+            setUname={setUname}
+            uname2={uname2}
+            setUname2={setUname2}
+            pword={pword}
+            setPword={setPword}
+          />
           <div className="followerlist">
+            <h2 className="h2">Followers</h2>
             {followers.map((el, idx) => (
-              <div className="follower" key={idx}>
+              <div className="profile" key={idx}>
                 <span>
                   u#{el.follower_id} {el.follower}
                 </span>
@@ -639,6 +557,7 @@ export default function Home() {
           </div>
 
           <div className="browse">
+            <h2 className="h2">Browse Users</h2>
             {profiles.map((el, idx) => (
               <div className="profile" key={idx}>
                 <span>

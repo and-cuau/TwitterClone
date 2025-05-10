@@ -59,9 +59,10 @@ export default function Admin() {
     console.log("password: " + password);
     try {
       const res = await fetch(
-        `http://localhost:3000/users/admin/exists?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+        `http://localhost:3000/users/admin/login}`,
         {
-          method: "GET",
+          method: "POST",
+          body: {username: username, password: password}
         },
       );
 
