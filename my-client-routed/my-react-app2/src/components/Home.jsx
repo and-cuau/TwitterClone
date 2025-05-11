@@ -121,7 +121,7 @@ export default function Home() {
           },
         },
       );
-
+      
       if (!res.ok) throw new Error("Server error");
 
       const data = await res.json(); // parse the response
@@ -225,7 +225,7 @@ export default function Home() {
           follower_id: el.follower_id,
           follower: el.follower,
         })),
-      ); // idk why the old code wasnt working but this chatgpt code is much cleaner
+      ); // idk why the old code wasnt working but this suggested code is much cleaner
 
       return true;
     } catch (err) {
@@ -311,41 +311,39 @@ export default function Home() {
     const isAdmin = JSON.parse(localStorage.getItem("isAdmin"));
     setIsAdmin(isAdmin);
 
-    if (isLoggedInGlobal){
+    if (isLoggedInGlobal) {
+      const raw = localStorage.getItem("myData");
+      console.log("upon refresh: " + localStorage.getItem("myData"));
+      console.log("token upon refresh: " + localStorage.getItem("token"));
+      let globalid = "0";
 
-    const raw = localStorage.getItem("myData");
-    console.log("upon refresh: " + localStorage.getItem("myData"));
-    console.log("token upon refresh: " + localStorage.getItem("token"));
-    let globalid = "0";
+      let parsed;
+      try {
+        if (raw) {
+          parsed = JSON.parse(raw); //json string to javascript value
+          console.log("parsed is :" + parsed.message);
+          // old code used same object not new to set state
+          globalid = parsed.user_id;
+          setUname((prevUser) => ({
+            ...prevUser,
+            name: parsed.message,
+            user_id: parsed.user_id,
+          }));
 
-    let parsed;
-    try {
-      if (raw) {
-        parsed = JSON.parse(raw); //json string to javascript value
-        console.log("parsed is :" + parsed.message);
-        // old code used same object not new to set state
-        globalid = parsed.user_id;
-        setUname((prevUser) => ({
-          ...prevUser,
-          name: parsed.message,
-          user_id: parsed.user_id,
-        }));
-
-        console.log("if passed");
-      } else {
-        console.log("no saved data");
+          console.log("if passed");
+        } else {
+          console.log("no saved data");
+        }
+      } catch (e) {
+        console.error("Failed to parse localStorage data:", e);
       }
-    } catch (e) {
-      console.error("Failed to parse localStorage data:", e);
-    }
 
-    console.log("parsed.message upon refresh: " + parsed.message);
+      console.log("parsed.message upon refresh: " + parsed.message);
 
-    fetchUsers(parsed.user_id);
-    fetchUserPosts(parsed.message); // unused var uname
-    fetchPosts(parsed.user_id);
-    fetchFollowers(parsed.message);
-
+      fetchUsers(parsed.user_id);
+      fetchUserPosts(parsed.message); // unused var uname
+      fetchPosts(parsed.user_id);
+      fetchFollowers(parsed.message);
     }
 
     // Connect to the WebSocket server
@@ -389,24 +387,27 @@ export default function Home() {
     <>
       <div className="page2">
         <div className="page">
-
-        <div className="myprofile">
+          <div className="myprofile">
+            {isLoggedInGlobal ? (
               <div>
-              <h2>{uname.user_id + " " + uname.name}</h2>
-              <div className="followers">
-                <span>{numfollowers}</span>&nbsp;
-                <span>Followers</span>
+                <h2>{uname.user_id + " " + uname.name}</h2>
+                <div className="followers">
+                  <span>{numfollowers}</span>&nbsp;
+                  <span>Followers</span>
+                </div>
+                <button onClick={() => logOutUser()}>Log out</button>
               </div>
-              <button onClick={() => logOutUser()}>Log out</button>
-
+            ) : (
+              <div>
+                <h2>You are logged out.</h2>
               </div>
-            </div>
-  
+            )}
+          </div>
 
           <div className="feeds">
             <div className="feed">
-            <h2 className="h2">Your Posts</h2>
-           
+              <h2 className="h2">Your Posts</h2>
+
               {userPosts.map((el, idx) => (
                 <div className="post" key={idx}>
                   <p className="user">{el.username}</p>
@@ -444,7 +445,7 @@ export default function Home() {
             </div>
 
             <div className="feed">
-            <h2 className="h2">Feed</h2>
+              <h2 className="h2">Feed</h2>
               {feed.map((el, idx) => (
                 <div className="post" key={idx}>
                   <p className="user">

@@ -18,13 +18,13 @@ export default function Login({
     console.log("password: " + password);
 
     try {
-      const res = await fetch(
-        `http://localhost:3000/users/login`,
-        {
-          method: "POST",
-          body: JSON.stringify({username: username, password: password}),
+      const res = await fetch(`http://localhost:3000/users/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({ username: username, password: password }),
+      });
 
       if (!res.ok) throw new Error("Server error");
 
@@ -75,34 +75,37 @@ export default function Login({
         )
       ) : (
         <div>
-          <h2 className = "h2">Log in</h2>
+          <h2 className="h2">Log in</h2>
           <div>
-
             <div>
-            <span>Username: </span>
-            <input
-              className="username"
-              value={uname2}
-              placeholder="username"
-              onChange={(e) => setUname2(e.target.value)}
-            ></input>
+              <span>Username: </span>
+              <input
+                className="username"
+                value={uname2}
+                placeholder="username"
+                onChange={(e) => setUname2(e.target.value)}
+              ></input>
             </div>
 
             <div>
-            <span>Password: </span>
-            <input
-              className="username"
-              value={pword}
-              placeholder="password"
-              onChange={(e) => setPword(e.target.value)}
-            ></input>
+              <span>Password: </span>
+              <input
+                className="username"
+                value={pword}
+                placeholder="password"
+                onChange={(e) => setPword(e.target.value)}
+              ></input>
             </div>
-
           </div>
 
           <div>
             <div>
-              <button className = "enter" onClick={() => checkUser(uname2, pword)}>Enter</button>
+              <button
+                className="enter"
+                onClick={() => checkUser(uname2, pword)}
+              >
+                Enter
+              </button>
             </div>
             <div>
               <Link to="/signup">Sign up</Link>

@@ -1,12 +1,12 @@
 const express = require('express');
 const app = express();
 const PORT = 3000;
+
 const bodyParser = require('body-parser');
-
+const util = require('util');
 const bcrypt = require('bcrypt');
-const isMatch = await bcrypt.compare('myPassword', hash);
-
 const jwt = require('jsonwebtoken');
+const logAction = require('./logaction');
 
 // SECRET to sign tokens (keep this hidden!)
 const SECRET = 'my_super_secret_key';
@@ -29,8 +29,10 @@ function authenticateToken(req, res, next) {
     if (!token) return res.sendStatus(401);
 
     jwt.verify(token, SECRET, (err, user) => {
+      console.log("before 403");
         if (err) return res.sendStatus(403);
         req.user = user;
+        console.log("next called");
         next();
     });
 }
@@ -42,15 +44,28 @@ function authorizeAdmin(req, res, next){
   next();
 }
 
+// const logAction = (db, userId, action, targetId, req) => {
+//   const stmt = db.prepare(`
+//     INSERT INTO audit_logs (user_id, action, target_id, ip_address, user_agent)
+//     VALUES (?, ?, ?, ?, ?)
+//   `);
+//   stmt.run(userId, action, targetId, req.ip, req.headers['user-agent']);
+// };
+
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('./storage.db');
 const cors = require('cors');
 
 app.use(cors());
 
-app.use(express.json()); // imprtant for reading req body ! ✅ Modern, built-in way
+app.use(express.json()); // imprtant for reading req body ! Modern, built-in way
 
 app.use(express.urlencoded({ extended: true }));
+
+app.use((req, res, next) => {
+  req.db = db; // now req.db is available in routes
+  next();
+});
 
 db.run(`CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,9 +96,36 @@ db.run(`CREATE TABLE IF NOT EXISTS followers (
   follower TEXT
 )`);
 
+db.run(`CREATE TABLE IF NOT EXISTS audit_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  target_id INTEGER,
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+  ip_address TEXT,
+  user_agent TEXT
+)`);
+
 console.log('Test log');
 
 module.exports = db;
+
+
+// Promisify db methods
+db.get = util.promisify(db.get);
+
+
+const originalRun = db.run;
+
+db.run = function (sql, params = []) {
+  return new Promise((resolve, reject) => {
+    originalRun.call(this, sql, params, function (err) {
+      if (err) return reject(err);
+      resolve(this);
+    });
+  });
+};
+
 
 // Root route
 app.get('/', (req, res) => {
@@ -95,12 +137,12 @@ app.post('/users',  async (req, res) =>{ // post new user  (sign up)
   const username = req.body.username;
   const password = req.body.password;
   const hash = await bcrypt.hash(password, 10);
+  console.log("hash: " + hash);
   const role = req.body.role;
 
   console.log('Test: ' + username);
 
   db.run('INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)', [username, hash, role], function(err){ 
-    
     if (this.changes === 0) {
       db.get('SELECT id FROM users WHERE username = ?', [username], (err, row) => {
         if (err) {
@@ -118,46 +160,6 @@ app.post('/users',  async (req, res) =>{ // post new user  (sign up)
 });
 
 
-app.get('/users/exists', (req, res) =>{ // check for user
-  console.log('GET /users/exists was called');
-  const username = req.query.username;
-  const password = req.query.password;
-
-  console.log('Test: ' + username);
-
-  db.get('SELECT * FROM users WHERE username = ? AND role = "user"', [username], function(err, row){ 
-    if (err) {
-      console.error(err.message);
-      return res.status(500).json({ error: 'Database error' });
-    } else if (row) {
-      if (row.password == password){
-        const userobj = {id: row.id, role: "user"};
-        const token = generateToken(userobj);
-
-        const safeUserInfo = {
-          id: row.id,
-          username: row.username,
-        };  // add row.role ?
-
-        const data = {userInfo: safeUserInfo, token: token}
-        console.log("Successful log-in")
-        console.log(data);
-        return res.send(data);
-      } else{
-
-        console.log("Username exists but password is incorrect")
-        return res.status(404).json({ username: "Invalid username or password (debug: username exists but password is incorrect)", id: "0"});
-      }
-    }
-    else{
-      console.log("Username does not exist")
-      return res.status(404).json({ username: "Invalid username or password (debug: username does not exist)", id:"0" });
-    }
-  });
-});
-
-
-
 app.post('/users/login', async (req, res) =>{ // check for user
   console.log('POST /users/login was called');
   const username = req.body.username;
@@ -173,7 +175,13 @@ app.post('/users/login', async (req, res) =>{ // check for user
 
   const row = await db.get('SELECT * FROM users WHERE username = ?', [username]);
 
+  console.log("row: ");
+  console.log(row);
+
   if (!row) return res.status(404).json({ error: 'User not found' });
+
+  console.log(row.password);
+  console.log(password);
 
   const isMatch = await bcrypt.compare(password, row.password); // This works fine here
 
@@ -198,6 +206,7 @@ app.post('/users/login', async (req, res) =>{ // check for user
     res.status(401).json({ error: 'Invalid credentials' });
   }
 } catch (err){
+  console.log("server error confirmed");
   res.status(500).json({ error: 'Server error' });
 }
 });
@@ -219,7 +228,7 @@ app.post('/users/admin/login', async (req, res) =>{ // check for user (admin)
     if (isMatch) {
       const userobj = {id: row.id, role: "admin"};
       const token = generateToken(userobj);
-
+      
       const safeUserInfo = {
         id: row.id,
         username: row.username,
@@ -238,8 +247,6 @@ app.post('/users/admin/login', async (req, res) =>{ // check for user (admin)
 
 
 });
-
-
 
 app.get('/posts', (req, res) => {  // get all commmunity posts except for user's
   // console.log('GET /posts was called');
@@ -268,30 +275,26 @@ app.get('/posts/user', (req, res) => {  //  get all user's posts
   });
 });
 
-app.post('/posts', authenticateToken, (req, res) => {   // post new post
-  console.log('POST /posts was called');
-  const { user_id, username, text } = req.body;
+app.post( // post new post
+  '/posts',
+  authenticateToken,
+  logAction('POST_CREATED', (req) => req.postId),
+  async (req, res) => {
+    const { user_id, username, text } = req.body;
+    const result = await db.run(
+      'INSERT INTO posts (user_id, username, text) VALUES (?, ?, ?)',
+      [user_id, username, text]
+    );
 
-  // console.log(req.user);
+    const postId = result.lastID;
+    req.postId = postId; // logAction will read this after res finishes
 
-  db.run('INSERT INTO posts (user_id, username, text) VALUES (?, ?, ?)', [user_id, username, text], function(err){
-    if (err){
-      console.error('Error inserting data:', err);
-      return;
-    }
-    console.log(`New post inserted with ID: ${this.lastID}`)
-  });
+    res.json({ message: 'Post created', postId });
+  }
+);
 
-  db.all('SELECT * FROM posts', [], (err, rows) => {
-    if (err) {
-      throw err;
-    }
-    console.log(rows);
-  });
-  res.send('Hello, World!');
-});
 
-app.post('/reactions', authenticateToken, (req, res) => {   // update post with reaction
+app.post('/reactions', authenticateToken, (req, res) => { // update post with reaction
   console.log('POST /reactions was called');
 
   post_id = req.body.message_id;

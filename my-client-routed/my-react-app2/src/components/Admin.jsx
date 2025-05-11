@@ -58,23 +58,24 @@ export default function Admin() {
     console.log("username: " + username);
     console.log("password: " + password);
     try {
-      const res = await fetch(
-        `http://localhost:3000/users/admin/login}`,
-        {
-          method: "POST",
-          body: {username: username, password: password}
+      const res = await fetch(`http://localhost:3000/users/admin/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
-
-      if (!res.ok) throw new Error("Server error");
-
-      setIsLoggedInGlobal(true);
-      setIsAdmin(true);
-      localStorage.setItem("isLoggedIn", JSON.stringify(true));
-      localStorage.setItem("isAdmin", JSON.stringify(true));
+        body:  JSON.stringify({ username: username, password: password }),
+      });
 
       const data = await res.json(); // parse the response
       console.log("Added User: ", data); // do something with it
+
+      if (res.ok) {
+        console.log("Login successful:", data);
+
+        setIsLoggedInGlobal(true);
+      setIsAdmin(true);
+      localStorage.setItem("isLoggedIn", JSON.stringify(true));
+      localStorage.setItem("isAdmin", JSON.stringify(true));
 
       localStorage.setItem("token", data.token); // JSON.stringify was causing the token alteration problem. its not necessary and it adds extra quotes
 
@@ -85,7 +86,15 @@ export default function Admin() {
 
       localStorage.setItem("myData", JSON.stringify(data2));
 
-      return true;
+
+        return { success: true, data }; // contains userInfo + token
+
+      } else {
+        console.warn("Login failed:", data.error);
+        return { success: false, error: data.error };
+      }
+
+      // return true;
     } catch (err) {
       console.error("Failed to send message:", err);
       return false;

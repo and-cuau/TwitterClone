@@ -44,7 +44,7 @@ button {
   font-weight: 500;
   font-family: inherit;
   background-color: #1a1a1a;
-  background-color: #D3D3D3;
+  background-color: #d3d3d3;
   color: black;
   cursor: pointer;
   transition: border-color 0.25s;
@@ -65,14 +65,13 @@ button:focus-visible {
 .page {
   height: 675px;
   width: 400px;
-  border: 2px solid  #36454F;
+  border: 2px solid #36454f;
 }
 
 .page2 {
   display: flex;
-  border: 2px solid  #36454F;
+  border: 2px solid #36454f;
 }
-
 
 .side {
   display: flex;
@@ -81,7 +80,7 @@ button:focus-visible {
 }
 
 .followerlist {
-  border: 2px solid #36454F;
+  border: 2px solid #36454f;
   height: 260px;
   overflow-y: auto;
 }
@@ -103,7 +102,7 @@ button:focus-visible {
   height: 410px;
   width: 400px;
   /* margin: 50px auto; */
-  border: 2px solid  #36454F;
+  border: 2px solid #36454f;
   overflow-y: auto;
   /* display: inline; */
 }
@@ -111,7 +110,7 @@ button:focus-visible {
 .post {
   /* border: 2px solid #36454F; */
   width: 180px;
-  background-color: #1A1A1A;
+  background-color: #1a1a1a;
   margin: 5px auto;
 }
 
@@ -159,12 +158,12 @@ textarea {
 }
 
 .dmsprofile {
-  border: 1px solid  #36454F;
+  border: 1px solid #36454f;
   height: 35px;
 }
 
 .messages {
-  border: 1px solid #36454F;
+  border: 1px solid #36454f;
   height: 160px;
   overflow-y: auto;
 }
@@ -172,7 +171,7 @@ textarea {
 .dmsinputarea {
   flex-grow: 1;
   height: 40px;
-  border: 1px solid #36454F;
+  border: 1px solid #36454f;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -182,30 +181,24 @@ input {
   width: 110px;
 }
 
-
-
 .profile {
-  border: 2px solid #36454F;
-  background:  #36454F;
+  border: 2px solid #36454f;
+  background: #36454f;
   margin: 4px auto;
   width: 90%;
- 
 }
 
-
-.enter{
+.enter {
   margin: 5px 0;
 }
-
-
 
 .loginout {
   display: flex;
   justify-content: center;
 }
 
-span{
-  display: inline
+span {
+  display: inline;
 }
 .login {
   /* border: 2px solid red; */
@@ -239,10 +232,9 @@ select {
   width: 100px;
 }
 
-.h2{
+.h2 {
   margin: 0 auto;
 }
-
 
 * {
 }
