@@ -2,8 +2,9 @@
 This application is designed to mimic the core functionality of X.
 
 ## Technologies Used  
-- **Frontend**: React, HTML, CSS, Javascript, WebSocket
-- **Backend**: Javascript, Node.js, Express.js, SQLite3, WebSocket
+- **Frontend**: React, HTML, CSS, Javascript
+- **Backend**: Javascript, Node.js, Express.js, SQLite3
+- **Real-Time Communication**: WebSocket
 - **Security**: JWT, Bcrypt
 
 
