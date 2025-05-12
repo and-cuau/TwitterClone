@@ -18,7 +18,7 @@ export default function Home() {
   const [profiles, setProfiles] = useState([]);
   const [followers, setFollowers] = useState([]);
   const [feed, setFeed] = useState([
-    { username: "Dex", message: "hdvjd" },
+    { username: "Dex", message: "good morning" },
     { username: "Luna", message: "hello world" },
   ]);
   const [userPosts, setUserPosts] = useState([]);
@@ -46,6 +46,10 @@ export default function Home() {
       });
 
       if (!res.ok) throw new Error("Server error");
+
+      fetchPosts(uname.user_id); // added fetchpost but not fetchuserposts
+      fetchUserPosts(uname.name); // necessary?
+
 
       return true;
     } catch (err) {
@@ -121,7 +125,7 @@ export default function Home() {
           },
         },
       );
-      
+
       if (!res.ok) throw new Error("Server error");
 
       const data = await res.json(); // parse the response
@@ -305,13 +309,12 @@ export default function Home() {
   useEffect(() => {
     //  On mount
     const isLoggedInGlobal = JSON.parse(localStorage.getItem("isLoggedIn"));
-    setIsLoggedIn(isLoggedIn);
     setIsLoggedInGlobal(isLoggedInGlobal);
 
     const isAdmin = JSON.parse(localStorage.getItem("isAdmin"));
     setIsAdmin(isAdmin);
 
-    if (isLoggedInGlobal) {
+     if (isLoggedInGlobal) {
       const raw = localStorage.getItem("myData");
       console.log("upon refresh: " + localStorage.getItem("myData"));
       console.log("token upon refresh: " + localStorage.getItem("token"));
@@ -344,29 +347,29 @@ export default function Home() {
       fetchUserPosts(parsed.message); // unused var uname
       fetchPosts(parsed.user_id);
       fetchFollowers(parsed.message);
-    }
+     }
 
     // Connect to the WebSocket server
-    socketRef.current = new WebSocket("ws://localhost:8080");
+    // socketRef.current = new WebSocket("ws://localhost:8080");
 
-    socketRef.current.onopen = () => {
-      console.log("WebSocket connected: !!" + globalid);
-      socketRef.current.send(JSON.stringify(globalid));
-    };
+    // socketRef.current.onopen = () => {
+    //   console.log("WebSocket connected: !!" + globalid);
+    //   socketRef.current.send(JSON.stringify(globalid));
+    // };
 
-    socketRef.current.onmessage = (event) => {
-      const parsed = JSON.parse(event.data);
+    // socketRef.current.onmessage = (event) => {
+    //   const parsed = JSON.parse(event.data);
 
-      setElements((prev) => [...prev, parsed.msg]);
-    };
+    //   setElements((prev) => [...prev, parsed.msg]);
+    // };
 
-    socketRef.current.onclose = () => {
-      console.log("WebSocket disconnected");
-    };
+    // socketRef.current.onclose = () => {
+    //   console.log("WebSocket disconnected");
+    // };
 
-    return () => {
-      socketRef.current.close();
-    };
+    // return () => {
+    //   socketRef.current.close();
+    // };
   }, []);
 
   const addMessage = () => {
@@ -535,6 +538,10 @@ export default function Home() {
             setUname2={setUname2}
             pword={pword}
             setPword={setPword}
+            fetchPosts = {fetchPosts}
+            fetchUserPosts = {fetchUserPosts}
+            fetchUsers = {fetchUsers}
+            fetchFollowers = {fetchFollowers}
           />
           <div className="followerlist">
             <h2 className="h2">Followers</h2>

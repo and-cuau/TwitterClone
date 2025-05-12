@@ -8,7 +8,11 @@ export default function Login({
   uname2,
   setUname2,
   pword,
-  setPword,
+  setPword, 
+  fetchPosts,
+  fetchUserPosts,
+  fetchUsers,
+  fetchFollowers 
 }) {
   const { setIsAdmin, isAdmin } = useAuth();
   const { setIsLoggedInGlobal, isLoggedInGlobal } = useAuth();
@@ -52,6 +56,10 @@ export default function Login({
       };
 
       localStorage.setItem("myData", JSON.stringify(data2));
+      fetchUsers(data.userInfo.id);
+      fetchUserPosts(data.userInfo.username); // unused var uname
+      fetchPosts(data.userInfo.id);
+      fetchFollowers(data.userInfo.username);
 
       return true;
     } catch (err) {

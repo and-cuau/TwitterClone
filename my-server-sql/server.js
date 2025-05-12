@@ -44,13 +44,6 @@ function authorizeAdmin(req, res, next){
   next();
 }
 
-// const logAction = (db, userId, action, targetId, req) => {
-//   const stmt = db.prepare(`
-//     INSERT INTO audit_logs (user_id, action, target_id, ip_address, user_agent)
-//     VALUES (?, ?, ?, ?, ?)
-//   `);
-//   stmt.run(userId, action, targetId, req.ip, req.headers['user-agent']);
-// };
 
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('./storage.db');
@@ -172,7 +165,6 @@ app.post('/users/login', async (req, res) =>{ // check for user
   console.log('Test: ' + username);
 
   try {
-
   const row = await db.get('SELECT * FROM users WHERE username = ?', [username]);
 
   console.log("row: ");
@@ -249,7 +241,7 @@ app.post('/users/admin/login', async (req, res) =>{ // check for user (admin)
 });
 
 app.get('/posts', (req, res) => {  // get all commmunity posts except for user's
-  // console.log('GET /posts was called');
+  console.log('GET /posts was called');
 
   const user_id = req.query.user_id;
 
@@ -262,7 +254,7 @@ app.get('/posts', (req, res) => {  // get all commmunity posts except for user's
 });
 
 app.get('/posts/user', (req, res) => {  //  get all user's posts
-  // console.log('GET /posts/user was called');
+  console.log('GET /posts/user was called');
   const username = req.query.username;
 
   console.log(username);
@@ -375,6 +367,7 @@ app.get('/followers', authenticateToken, (req, res) => {   // get all user's fol
 });
 
 app.get('/users', (req, res) => { // gets all users 
+  console.log("GET users was executed");
   const id = req.query.id;
   db.all('SELECT * FROM users WHERE role = "user" AND id !=  ?', [id], (err, rows) => {
     if (err) {
