@@ -6,15 +6,11 @@ import Login from "./Login";
 
 export default function Home() {
   const [selected, setSelected] = useState("");
-  const [elements, setElements] = useState([]);
   const [inputText, setInputText] = useState("");
   const [input2Text, setInput2Text] = useState("");
-  const [uname, setUname] = useState({ name: "test", user_id: "" });
+  // const [uname, setUname] = useState({ name: "test", user_id: "" });
   const [numfollowers, setNumfollowers] = useState("-1");
-  const [pword, setPword] = useState("");
-  const [dmuname, setDmuname] = useState("test");
   const globaltoidRef = useRef(null);
-  const [uname2, setUname2] = useState();
   const [profiles, setProfiles] = useState([]);
   const [followers, setFollowers] = useState([]);
   const [feed, setFeed] = useState([
@@ -22,14 +18,15 @@ export default function Home() {
     { username: "Luna", message: "hello world" },
   ]);
   const [userPosts, setUserPosts] = useState([]);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const { setIsAdmin, isAdmin } = useAuth();
-  const { setIsLoggedInGlobal, isLoggedInGlobal } = useAuth();
+  const { userInfo, setUserInfo } = useAuth(); // NEW!
 
   const sendPost = async (message) => {
     const token = localStorage.getItem("token");
     console.log("token on sending post" + token);
+
+    // const raw = localStorage.getItem("userInfo"); // jank fix
+    // const parsed = JSON.parse(raw);
 
     try {
       const res = await fetch("http://localhost:3000/posts", {
@@ -39,17 +36,16 @@ export default function Home() {
           Authorization: `Bearer ${token}`, // <<< Added Auth line
         },
         body: JSON.stringify({
-          user_id: uname.user_id,
-          username: uname.name,
+          user_id: userInfo.user_id,
+          username: userInfo.username,
           text: message,
         }),
       });
 
       if (!res.ok) throw new Error("Server error");
 
-      fetchPosts(uname.user_id); // added fetchpost but not fetchuserposts
-      fetchUserPosts(uname.name); // necessary?
-
+      fetchPosts(userInfo.user_id); // added fetchpost but not fetchuserposts
+      fetchUserPosts(userInfo.username); // necessary?
 
       return true;
     } catch (err) {
@@ -59,21 +55,10 @@ export default function Home() {
   };
 
   const logOutUser = async () => {
-    setIsLoggedIn(false);
-    setIsLoggedInGlobal(false);
-    localStorage.setItem("isLoggedIn", JSON.stringify(false));
-
-    setIsAdmin(false);
-    localStorage.setItem("isAdmin", JSON.stringify(false));
+    setUserInfo(null); // NEW!
+    localStorage.removeItem("userInfo"); // NEW!
 
     localStorage.removeItem("token");
-
-    const data2 = {
-      message: "Logged-out",
-      user_id: "0",
-    };
-
-    localStorage.setItem("myData", JSON.stringify(data2));
   };
 
   const fetchPosts = async (message) => {
@@ -110,14 +95,14 @@ export default function Home() {
   };
 
   const fetchUserPosts = async (message) => {
-    const raw = localStorage.getItem("myData"); // jank fix
+    const raw = localStorage.getItem("userInfo"); // jank fix
     const parsed = JSON.parse(raw);
-    console.log("TEST:" + parsed.message);
+    console.log("TEST:" + parsed.username);
 
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(
-        "http://localhost:3000/posts/user?username=" + parsed.message,
+        "http://localhost:3000/posts/user?username=" + parsed.username,
         {
           method: "GET",
           headers: {
@@ -156,8 +141,8 @@ export default function Home() {
         },
         body: JSON.stringify({
           username: username,
-          follower: uname.name,
-          follower_id: uname.user_id,
+          follower: userInfo.username,
+          follower_id: userInfo.user_id,
         }),
       });
 
@@ -171,6 +156,7 @@ export default function Home() {
   };
 
   const fetchUsers = async (message) => {
+    console.log("MESSAGE TEST" + message);
     try {
       const res = await fetch("http://localhost:3000/users?id=" + message, {
         method: "GET",
@@ -199,15 +185,15 @@ export default function Home() {
   };
 
   const fetchFollowers = async (message) => {
-    const raw = localStorage.getItem("myData"); // jank fix
+    const raw = localStorage.getItem("userInfo"); // jank fix
     const parsed = JSON.parse(raw);
 
-    console.log("this is what sent to /followers: " + parsed.message);
+    console.log("this is what sent to /followers: " + parsed.username);
 
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(
-        "http://localhost:3000/followers?username=" + parsed.message,
+        "http://localhost:3000/followers?username=" + parsed.username,
         {
           method: "GET",
           headers: {
@@ -303,20 +289,15 @@ export default function Home() {
 
   //------------------------------------------------------------------------------------------------------------------
 
-  const [messages, setMessages] = useState([]);
-  const socketRef = useRef(null);
+  
 
   useEffect(() => {
-    //  On mount
-    const isLoggedInGlobal = JSON.parse(localStorage.getItem("isLoggedIn"));
-    setIsLoggedInGlobal(isLoggedInGlobal);
+    const userInformation = JSON.parse(localStorage.getItem("userInfo"));
+    setUserInfo(userInformation);
 
-    const isAdmin = JSON.parse(localStorage.getItem("isAdmin"));
-    setIsAdmin(isAdmin);
-
-     if (isLoggedInGlobal) {
-      const raw = localStorage.getItem("myData");
-      console.log("upon refresh: " + localStorage.getItem("myData"));
+    if (userInfo) {
+      const raw = localStorage.getItem("userInfo");
+      console.log("upon refresh: " + localStorage.getItem("userInfo"));
       console.log("token upon refresh: " + localStorage.getItem("token"));
       let globalid = "0";
 
@@ -324,76 +305,41 @@ export default function Home() {
       try {
         if (raw) {
           parsed = JSON.parse(raw); //json string to javascript value
-          console.log("parsed is :" + parsed.message);
+          console.log("parsed is :" + parsed.username);
           // old code used same object not new to set state
           globalid = parsed.user_id;
-          setUname((prevUser) => ({
+          setUserInfo((prevUser) => ({
             ...prevUser,
-            name: parsed.message,
             user_id: parsed.user_id,
+            username: parsed.username,
+            role: parsed.role,
           }));
 
           console.log("if passed");
         } else {
           console.log("no saved data");
         }
+
+        fetchUsers(parsed.user_id);
+        fetchUserPosts(parsed.username); // unused var uname
+        fetchPosts(parsed.user_id);
+        fetchFollowers(parsed.username);
       } catch (e) {
         console.error("Failed to parse localStorage data:", e);
       }
 
-      console.log("parsed.message upon refresh: " + parsed.message);
-
-      fetchUsers(parsed.user_id);
-      fetchUserPosts(parsed.message); // unused var uname
-      fetchPosts(parsed.user_id);
-      fetchFollowers(parsed.message);
-     }
-
-    // Connect to the WebSocket server
-    // socketRef.current = new WebSocket("ws://localhost:8080");
-
-    // socketRef.current.onopen = () => {
-    //   console.log("WebSocket connected: !!" + globalid);
-    //   socketRef.current.send(JSON.stringify(globalid));
-    // };
-
-    // socketRef.current.onmessage = (event) => {
-    //   const parsed = JSON.parse(event.data);
-
-    //   setElements((prev) => [...prev, parsed.msg]);
-    // };
-
-    // socketRef.current.onclose = () => {
-    //   console.log("WebSocket disconnected");
-    // };
-
-    // return () => {
-    //   socketRef.current.close();
-    // };
-  }, []);
-
-  const addMessage = () => {
-    console.log("Globaltoid upon sending dm: " + globaltoidRef.current);
-
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      const messageObject = {
-        to: globaltoidRef.current,
-        from: uname.user_id,
-        msg: input2Text,
-      };
-      // socketRef.current.send(json.stringify(input2Text));
-      socketRef.current.send(JSON.stringify(messageObject));
+      // console.log("parsed.username upon refresh: " + parsed.username);
     }
-  };
+  }, []);
 
   return (
     <>
       <div className="page2">
         <div className="page">
           <div className="myprofile">
-            {isLoggedInGlobal ? (
+            {userInfo ? (
               <div>
-                <h2>{uname.user_id + " " + uname.name}</h2>
+                <h2>{userInfo.user_id + " " + userInfo.username}</h2>
                 <div className="followers">
                   <span>{numfollowers}</span>&nbsp;
                   <span>Followers</span>
@@ -408,101 +354,110 @@ export default function Home() {
           </div>
 
           <div className="feeds">
-            <div className="feed">
+            <div className="feedwrapper">
               <h2 className="h2">Your Posts</h2>
-
-              {userPosts.map((el, idx) => (
-                <div className="post" key={idx}>
-                  <p className="user">{el.username}</p>
-                  <p className="posttext">{el.message}</p>
-                  <div className="reactions">
-                    <button className="reaction" onClick={() => addReaction()}>
-                      👍
-                    </button>
-                    <button className="reaction" onClick={() => addReaction()}>
-                      👎
-                    </button>
-                    <div>
-                      <select
-                        onChange={(e) => {
-                          const action = e.target.value;
-                          setSelected(action);
-
-                          if (action === "delete") {
-                            deletePost(el.post_id);
-                          } else if (action === "edit") {
-                            // handle edit here
-                          }
-                        }}
+              <div className="feed">
+                {userPosts.map((el, idx) => (
+                  <div className="post" key={idx}>
+                    <p className="user">{el.username}</p>
+                    <p className="posttext">{el.message}</p>
+                    <div className="reactions">
+                      <button
+                        className="reaction"
+                        onClick={() => addReaction()}
                       >
-                        <option value="">•••</option>
-                        <option value="edit">Edit</option>
-                        <option value="delete">Delete</option>
-                      </select>
+                        👍
+                      </button>
+                      <button
+                        className="reaction"
+                        onClick={() => addReaction()}
+                      >
+                        👎
+                      </button>
+                      <div>
+                        <select
+                          onChange={(e) => {
+                            const action = e.target.value;
+                            setSelected(action);
 
-                      {/* {selected && <p>You selected: {selected}</p>} */}
+                            if (action === "delete") {
+                              deletePost(el.post_id);
+                            } else if (action === "edit") {
+                              // handle edit here
+                            }
+                          }}
+                        >
+                          <option value="">•••</option>
+                          <option value="edit">Edit</option>
+                          <option value="delete">Delete</option>
+                        </select>
+
+                        {/* {selected && <p>You selected: {selected}</p>} */}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
-            <div className="feed">
+            <div className="feedwrapper">
               <h2 className="h2">Feed</h2>
-              {feed.map((el, idx) => (
-                <div className="post" key={idx}>
-                  <p className="user">
-                    p#{el.post_id} {el.username}
-                  </p>
-                  <p className="posttext">{el.message}</p>
-                  <div className="reactions">
-                    <button
-                      className="reaction"
-                      onClick={() =>
-                        addReaction({
-                          user_id: uname.user_id,
-                          post_id: el.post_id,
-                          reaction: "👍",
-                        })
-                      }
-                    >
-                      👍
-                    </button>
-                    <button
-                      className="reaction"
-                      onClick={() =>
-                        addReaction({
-                          user_id: uname.user_id,
-                          post_id: el.post_id,
-                          reaction: "👎",
-                        })
-                      }
-                    >
-                      👎
-                    </button>
-                    <div>
-                      <select
-                        onChange={(e) => {
-                          const action = e.target.value;
-                          setSelected(action);
-
-                          if (action === "delete") {
-                            deletePost(el.post_id);
-                          } else if (action === "edit") {
-                            // handle edit here
-                          }
-                        }}
+              <div className="feed">
+                {feed.map((el, idx) => (
+                  <div className="post" key={idx}>
+                    <p className="user">
+                      p#{el.post_id} {el.username}
+                    </p>
+                    <p className="posttext">{el.message}</p>
+                    <div className="reactions">
+                      <button
+                        className="reaction"
+                        onClick={() =>
+                          addReaction({
+                            user_id: userInfo.user_id,
+                            post_id: el.post_id,
+                            reaction: "👍",
+                          })
+                        }
                       >
-                        <option value="">•••</option>
-                        <option value="edit">Edit</option>
-                        <option value="delete">Delete</option>
-                      </select>
+                        👍
+                      </button>
+                      <button
+                        className="reaction"
+                        onClick={() =>
+                          addReaction({
+                            user_id: userInfo.user_id,
+                            post_id: el.post_id,
+                            reaction: "👎",
+                          })
+                        }
+                      >
+                        👎
+                      </button>
+                      <div>
+                        <select
+                          onChange={(e) => {
+                            const action = e.target.value;
+                            setSelected(action);
 
-                      {/* {selected && <p>You selected: {selected}</p>} */}
+                            if (action === "delete") {
+                              deletePost(el.post_id);
+                            } else if (action === "edit") {
+                              // handle edit here
+                            }
+                          }}
+                        >
+                          <option value="">•••</option>
+                          <option value="edit">Edit</option>
+                          <option value="delete">Delete</option>
+                        </select>
+
+                        {/* {selected && <p>You selected: {selected}</p>} */}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
@@ -517,13 +472,13 @@ export default function Home() {
           <div>
             <button
               style={{ display: "none" }}
-              onClick={() => fetchFollowers(uname.name)}
+              onClick={() => fetchFollowers(userInfo.username)}
             >
               Fetch Followers
             </button>
             <button
               style={{ display: "none" }}
-              onClick={() => fetchUserPosts(uname.name)}
+              onClick={() => fetchUserPosts(userInfo.username)}
             >
               Fetch My Posts
             </button>
@@ -533,15 +488,11 @@ export default function Home() {
 
         <div className="side">
           <Login
-            setUname={setUname}
-            uname2={uname2}
-            setUname2={setUname2}
-            pword={pword}
-            setPword={setPword}
-            fetchPosts = {fetchPosts}
-            fetchUserPosts = {fetchUserPosts}
-            fetchUsers = {fetchUsers}
-            fetchFollowers = {fetchFollowers}
+            setUserInfo={setUserInfo}
+            fetchPosts={fetchPosts}
+            fetchUserPosts={fetchUserPosts}
+            fetchUsers={fetchUsers}
+            fetchFollowers={fetchFollowers}
           />
           <div className="followerlist">
             <h2 className="h2">Followers</h2>
@@ -551,14 +502,9 @@ export default function Home() {
                   u#{el.follower_id} {el.follower}
                 </span>
                 <div className="reactions">
-                  <button
-                    onClick={() => {
-                      setDmuname(el.follower);
-                      globaltoidRef.current = el.follower_id;
-                    }}
-                  >
-                    message
-                  </button>
+                  <Link to="/messages" state={{ toUserIDProp: el.follower_id, toUserProp: el.follower }}>
+                    Message
+                  </Link>
                 </div>
               </div>
             ))}

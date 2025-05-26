@@ -12,6 +12,8 @@ export default function Admin() {
   const { setIsAdmin, isAdmin } = useAuth();
   const { setIsLoggedInGlobal, isLoggedInGlobal } = useAuth();
 
+  const { setUserInfo, userInfo } = useAuth();
+
   const sendUser = async () => {
     try {
       const res = await fetch("http://localhost:3000/users", {
@@ -63,7 +65,7 @@ export default function Admin() {
         headers: {
           "Content-Type": "application/json",
         },
-        body:  JSON.stringify({ username: username, password: password }),
+        body: JSON.stringify({ username: username, password: password }),
       });
 
       const data = await res.json(); // parse the response
@@ -72,23 +74,17 @@ export default function Admin() {
       if (res.ok) {
         console.log("Login successful:", data);
 
-        setIsLoggedInGlobal(true);
-      setIsAdmin(true);
-      localStorage.setItem("isLoggedIn", JSON.stringify(true));
-      localStorage.setItem("isAdmin", JSON.stringify(true));
+        localStorage.setItem("token", data.token); // JSON.stringify was causing the token alteration problem. its not necessary and it adds extra quotes
 
-      localStorage.setItem("token", data.token); // JSON.stringify was causing the token alteration problem. its not necessary and it adds extra quotes
+        const data2 = {
+          user_id: data.userInfo.id,
+          username: data.userInfo.username,
+          role: "admin",
+        };
 
-      const data2 = {
-        message: data.userInfo.username,
-        user_id: data.userInfo.id,
-      };
-
-      localStorage.setItem("myData", JSON.stringify(data2));
-
+        localStorage.setItem("userInfo", JSON.stringify(data2));
 
         return { success: true, data }; // contains userInfo + token
-
       } else {
         console.warn("Login failed:", data.error);
         return { success: false, error: data.error };

@@ -5,7 +5,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #0a0f1c;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -33,6 +33,10 @@ body {
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
+}
+
+h2 {
+  display: block;
 }
 
 button {
@@ -91,27 +95,36 @@ button:focus-visible {
   overflow-y: auto;
 }
 
+.feedwrapper {
+  display: block;
+  margin: 0;
+}
+
 .feeds {
   width: 400px;
   /* border: 2px solid #36454F; */
   display: flex;
   margin: 0px auto 20px auto;
+  /* border: 2px solid red; */
 }
 
 .feed {
   height: 410px;
-  width: 400px;
+  width: 195px;
   /* margin: 50px auto; */
+  margin: 0;
   border: 2px solid #36454f;
   overflow-y: auto;
   /* display: inline; */
+  display: block;
 }
 
 .post {
   /* border: 2px solid #36454F; */
   width: 180px;
   background-color: #1a1a1a;
-  margin: 5px auto;
+  margin: 5px 0;
+  border-radius: 5px;
 }
 
 .posttext {

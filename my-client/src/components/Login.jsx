@@ -4,18 +4,14 @@ import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 
 export default function Login({
-  setUname,
-  uname2,
-  setUname2,
-  pword,
-  setPword, 
   fetchPosts,
   fetchUserPosts,
   fetchUsers,
-  fetchFollowers 
+  fetchFollowers,
 }) {
-  const { setIsAdmin, isAdmin } = useAuth();
-  const { setIsLoggedInGlobal, isLoggedInGlobal } = useAuth();
+  const { setUserInfo, userInfo } = useAuth();
+  const [uname2, setUname2] = useState();
+  const [pword, setPword] = useState();
 
   const checkUser = async (username, password) => {
     console.log("username: " + username);
@@ -35,27 +31,26 @@ export default function Login({
       const data = await res.json(); // parse the response
       console.log("Added User: ", data); // do something with it
 
-      setIsLoggedInGlobal(true);
-      localStorage.setItem("isLoggedIn", JSON.stringify(true));
-
       localStorage.setItem("token", data.token); // JSON.stringify was causing the token alteration problem. its not necessary and it adds extra quotes
 
       console.log(
         "token right after storing: " + localStorage.getItem("token"),
       );
 
-      setUname((prevUser) => ({
+      setUserInfo((prevUser) => ({
         ...prevUser,
-        name: data.userInfo.username,
         user_id: data.userInfo.id,
+        username: data.userInfo.username,
+        role: "user",
       }));
 
       const data2 = {
-        message: data.userInfo.username,
         user_id: data.userInfo.id,
+        username: data.userInfo.username,
+        role: "user",
       };
 
-      localStorage.setItem("myData", JSON.stringify(data2));
+      localStorage.setItem("userInfo", JSON.stringify(data2));
       fetchUsers(data.userInfo.id);
       fetchUserPosts(data.userInfo.username); // unused var uname
       fetchPosts(data.userInfo.id);
@@ -70,8 +65,8 @@ export default function Login({
 
   return (
     <div className="login">
-      {isLoggedInGlobal ? (
-        isAdmin ? (
+      {userInfo ? (
+        userInfo.role === "admin" ? (
           <div>
             <h2>You're logged in as an administrator.</h2>
           </div>

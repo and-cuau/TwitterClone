@@ -3,13 +3,14 @@ import { createContext, useContext, useState } from "react";
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoggedInGlobal, setIsLoggedInGlobal] = useState(false);
+  const [userInfo, setUserInfo] = useState({
+    userID: "",
+    username: "",
+    role: "",
+  });
 
   return (
-    <AuthContext.Provider
-      value={{ isAdmin, setIsAdmin, isLoggedInGlobal, setIsLoggedInGlobal }}
-    >
+    <AuthContext.Provider value={{ userInfo, setUserInfo }}>
       {children}
     </AuthContext.Provider>
   );

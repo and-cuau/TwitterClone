@@ -30,8 +30,6 @@ function checkType(value) {
     console.log(`connection msg test: ${message}`);
     const parsed = JSON.parse(message);
 
-    
-
     if (checkType(parsed)){
       let poppedItem = unaddrclients.pop();
       let kvPair = { key: parsed, value: poppedItem };

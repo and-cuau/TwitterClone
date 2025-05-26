@@ -103,7 +103,6 @@ console.log('Test log');
 
 module.exports = db;
 
-
 // Promisify db methods
 db.get = util.promisify(db.get);
 
@@ -118,7 +117,6 @@ db.run = function (sql, params = []) {
     });
   });
 };
-
 
 // Root route
 app.get('/', (req, res) => {
