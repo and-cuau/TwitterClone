@@ -20,7 +20,7 @@ This application is designed to mimic the core functionality of X.
 - **Non-Repudiation**: User actions are logged with action-specific details to prevent denial of having performed action.  
 
 ## Challenges & Solutions  
-- **Challenge**:  Enabling two-way communication between two connnected clients. 
+- **Challenge**:  Enabling two-way communication between two connnected clients.  
   **Solution**: Implemented map of WebSocket connection instances addressed by user ID. 
 
 ## Future Improvements  
